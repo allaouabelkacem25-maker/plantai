@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PhytoScan — Plant Health Intelligence</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0d1a0f;
+    --paper: #f5f2eb;
+    --green: #2d6a4f;
+    --green-light: #52b788;
+    --green-pale: #d8f3dc;
+    --accent: #b7e4c7;
+    --gold: #c9a84c;
+    --red: #c1121f;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'DM Sans', sans-serif;
+    overflow-x: hidden;
+  }
+
+  /* NAV */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.2rem 4rem;
+    background: rgba(245, 242, 235, 0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(45, 106, 79, 0.15);
+  }
+
+  .nav-logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.5rem;
+    font-weight: 900;
+    color: var(--green);
+    letter-spacing: -0.5px;
+  }
+
+  .nav-logo span { color: var(--gold); }
+
+  .nav-links {
+    display: flex;
+    gap: 2.5rem;
+    list-style: none;
+  }
+
+  .nav-links a {
+    text-decoration: none;
+    color: var(--ink);
+    font-size: 0.9rem;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    transition: color 0.3s;
+  }
+
+  .nav-links a:hover { color: var(--green); }
+
+  .nav-cta {
+    background: var(--green);
+    color: var(--paper) !important;
+    padding: 0.6rem 1.4rem;
+    border-radius: 2px;
+    transition: background 0.3s !important;
+  }
+
+  .nav-cta:hover { background: var(--green-light) !important; color: var(--ink) !important; }
+
+  /* HERO */
+  .hero {
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero-left {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 8rem 4rem 4rem 6rem;
+    position: relative;
+    z-index: 2;
+  }
+
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--green-pale);
+    color: var(--green);
+    padding: 0.4rem 1rem;
+    border-radius: 2px;
+    font-size: 0.78rem;
+    font-weight: 500;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 2rem;
+    width: fit-content;
+    animation: fadeUp 0.8s ease forwards;
+    opacity: 0;
+  }
+
+  .hero-badge::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    background: var(--green-light);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.4); }
+  }
+
+  .hero-title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(3rem, 5vw, 5rem);
+    font-weight: 900;
+    line-height: 1.05;
+    letter-spacing: -2px;
+    margin-bottom: 1.5rem;
+    animation: fadeUp 0.8s ease 0.2s forwards;
+    opacity: 0;
+  }
+
+  .hero-title em {
+    font-style: italic;
+    color: var(--green);
+  }
+
+  .hero-title .line-gold { color: var(--gold); }
+
+  .hero-desc {
+    font-size: 1.05rem;
+    line-height: 1.8;
+    color: #4a5c4e;
+    max-width: 480px;
+    margin-bottom: 3rem;
+    font-weight: 300;
+    animation: fadeUp 0.8s ease 0.4s forwards;
+    opacity: 0;
+  }
+
+  .hero-actions {
+    display: flex;
+    gap: 1rem;
+    animation: fadeUp 0.8s ease 0.6s forwards;
+    opacity: 0;
+  }
+
+  .btn-primary {
+    background: var(--green);
+    color: var(--paper);
+    padding: 1rem 2.2rem;
+    border: none;
+    border-radius: 2px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.3s;
+    letter-spacing: 0.3px;
+  }
+
+  .btn-primary:hover {
+    background: var(--green-light);
+    color: var(--ink);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(45, 106, 79, 0.3);
+  }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--green);
+    padding: 1rem 2.2rem;
+    border: 1.5px solid var(--green);
+    border-radius: 2px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.3s;
+  }
+
+  .btn-secondary:hover {
+    background: var(--green-pale);
+    transform: translateY(-2px);
+  }
+
+  .hero-stats {
+    display: flex;
+    gap: 3rem;
+    margin-top: 4rem;
+    padding-top: 2rem;
+    border-top: 1px solid rgba(45, 106, 79, 0.2);
+    animation: fadeUp 0.8s ease 0.8s forwards;
+    opacity: 0;
+  }
+
+  .stat-item { display: flex; flex-direction: column; }
+
+  .stat-number {
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--green);
+  }
+
+  .stat-label {
+    font-size: 0.78rem;
+    color: #7a8c7e;
+    letter-spacing: 0.5px;
+    margin-top: 0.2rem;
+  }
+
+  /* HERO RIGHT */
+  .hero-right {
+    position: relative;
+    overflow: hidden;
+    background: var(--green);
+  }
+
+  .hero-right-inner {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .leaf-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    width: 100%;
+    height: 100%;
+  }
+
+  .leaf-cell {
+    background: var(--green);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 4rem;
+    transition: all 0.6s ease;
+    animation: cellFade 3s ease infinite;
+    cursor: default;
+  }
+
+  .leaf-cell:nth-child(odd) { animation-delay: 0.5s; }
+  .leaf-cell:nth-child(3n) { animation-delay: 1s; }
+
+  @keyframes cellFade {
+    0%, 100% { background: var(--green); }
+    50% { background: #1e4d39; }
+  }
+
+  .hero-card {
+    position: absolute;
+    bottom: 3rem;
+    left: -2rem;
+    background: var(--paper);
+    border-radius: 4px;
+    padding: 1.5rem 2rem;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    min-width: 280px;
+    animation: slideIn 1s ease 1s forwards;
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+
+  @keyframes slideIn {
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    margin-bottom: 1rem;
+  }
+
+  .card-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--green-light);
+    animation: pulse 2s infinite;
+  }
+
+  .card-title {
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: #7a8c7e;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .card-result {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--green);
+    margin-bottom: 0.5rem;
+  }
+
+  .card-confidence {
+    font-size: 0.85rem;
+    color: #7a8c7e;
+  }
+
+  .confidence-bar {
+    height: 4px;
+    background: var(--green-pale);
+    border-radius: 2px;
+    margin-top: 0.8rem;
+    overflow: hidden;
+  }
+
+  .confidence-fill {
+    height: 100%;
+    width: 94%;
+    background: linear-gradient(90deg, var(--green), var(--green-light));
+    border-radius: 2px;
+    animation: fillBar 2s ease 2s both;
+    transform-origin: left;
+    transform: scaleX(0);
+  }
+
+  @keyframes fillBar { to { transform: scaleX(1); } }
+
+  /* DECORATIVE LINE */
+  .deco-line {
+    width: 60px;
+    height: 3px;
+    background: var(--gold);
+    margin: 0 auto 1rem;
+  }
+
+  /* SECTION: HOW IT WORKS */
+  .section {
+    padding: 7rem 6rem;
+  }
+
+  .section-label {
+    text-align: center;
+    font-size: 0.78rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--green-light);
+    font-weight: 500;
+    margin-bottom: 0.8rem;
+  }
+
+  .section-title {
+    text-align: center;
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2rem, 3.5vw, 3rem);
+    font-weight: 700;
+    letter-spacing: -1px;
+    margin-bottom: 4rem;
+    line-height: 1.2;
+  }
+
+  .steps-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+    background: rgba(45, 106, 79, 0.1);
+  }
+
+  .step-card {
+    background: var(--paper);
+    padding: 3rem 2.5rem;
+    position: relative;
+    transition: all 0.4s;
+  }
+
+  .step-card:hover {
+    background: var(--green);
+    color: var(--paper);
+  }
+
+  .step-card:hover .step-number,
+  .step-card:hover .step-title,
+  .step-card:hover .step-desc { color: var(--paper); }
+
+  .step-number {
+    font-family: 'Playfair Display', serif;
+    font-size: 4rem;
+    font-weight: 900;
+    color: var(--green-pale);
+    line-height: 1;
+    margin-bottom: 1.5rem;
+    transition: color 0.4s;
+  }
+
+  .step-icon {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+  }
+
+  .step-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin-bottom: 0.8rem;
+    transition: color 0.4s;
+  }
+
+  .step-desc {
+    font-size: 0.9rem;
+    line-height: 1.7;
+    color: #5a6e5e;
+    transition: color 0.4s;
+  }
+
+  .step-card:hover .step-desc { color: rgba(245, 242, 235, 0.8); }
+
+  /* FEATURES */
+  .features-section {
+    background: var(--ink);
+    color: var(--paper);
+    padding: 7rem 6rem;
+  }
+
+  .features-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: rgba(255,255,255,0.05);
+    margin-top: 4rem;
+  }
+
+  .feature-item {
+    padding: 3rem;
+    background: var(--ink);
+    border-left: 3px solid transparent;
+    transition: all 0.4s;
+  }
+
+  .feature-item:hover {
+    border-left-color: var(--green-light);
+    background: #1a2e1c;
+  }
+
+  .feature-icon {
+    font-size: 2.5rem;
+    margin-bottom: 1.2rem;
+  }
+
+  .feature-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--paper);
+    margin-bottom: 0.8rem;
+  }
+
+  .feature-desc {
+    font-size: 0.9rem;
+    line-height: 1.7;
+    color: rgba(245, 242, 235, 0.6);
+  }
+
+  .features-section .section-title { color: var(--paper); }
+  .features-section .section-label { color: var(--green-light); }
+
+  /* CTA */
+  .cta-section {
+    padding: 7rem 6rem;
+    text-align: center;
+    background: var(--green);
+    color: var(--paper);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .cta-section::before {
+    content: 'PhytoScan';
+    position: absolute;
+    font-family: 'Playfair Display', serif;
+    font-size: 12rem;
+    font-weight: 900;
+    color: rgba(255,255,255,0.04);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    white-space: nowrap;
+    pointer-events: none;
+  }
+
+  .cta-title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2.5rem, 4vw, 4rem);
+    font-weight: 900;
+    letter-spacing: -1.5px;
+    margin-bottom: 1.5rem;
+    position: relative;
+  }
+
+  .cta-desc {
+    font-size: 1.05rem;
+    color: rgba(245, 242, 235, 0.8);
+    margin-bottom: 3rem;
+    max-width: 500px;
+    margin-left: auto;
+    margin-right: auto;
+    line-height: 1.7;
+    position: relative;
+  }
+
+  .cta-actions { position: relative; display: flex; gap: 1rem; justify-content: center; }
+
+  .btn-white {
+    background: var(--paper);
+    color: var(--green);
+    padding: 1rem 2.5rem;
+    border: none;
+    border-radius: 2px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.3s;
+  }
+
+  .btn-white:hover {
+    background: var(--ink);
+    color: var(--paper);
+    transform: translateY(-2px);
+  }
+
+  /* FOOTER */
+  footer {
+    background: var(--ink);
+    color: var(--paper);
+    padding: 3rem 6rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-top: 1px solid rgba(255,255,255,0.05);
+  }
+
+  .footer-logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.3rem;
+    font-weight: 900;
+    color: var(--green-light);
+  }
+
+  .footer-logo span { color: var(--gold); }
+
+  .footer-links {
+    display: flex;
+    gap: 2rem;
+    list-style: none;
+  }
+
+  .footer-links a {
+    color: rgba(245, 242, 235, 0.5);
+    text-decoration: none;
+    font-size: 0.85rem;
+    transition: color 0.3s;
+  }
+
+  .footer-links a:hover { color: var(--green-light); }
+
+  .footer-copy {
+    font-size: 0.8rem;
+    color: rgba(245, 242, 235, 0.3);
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* SCROLL REVEAL */
+  .reveal {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: all 0.7s ease;
+  }
+
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">Phyto<span>Scan</span></div>
+  <ul class="nav-links">
+    <li><a href="index.html">Home</a></li>
+    <li><a href="analyze.html">Analyze</a></li>
+    <li><a href="ndvi.html">NDVI Map</a></li>
+    <li><a href="analyze.html" class="nav-cta">Start Analysis</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-left">
+    <div class="hero-badge">AI-Powered Plant Diagnostics</div>
+    <h1 class="hero-title">
+      Detect plant<br>
+      <em>disease</em> with<br>
+      <span class="line-gold">precision.</span>
+    </h1>
+    <p class="hero-desc">
+      PhytoScan uses deep learning to analyze plant images instantly — distinguishing healthy crops from diseased ones with over 99% accuracy.
+    </p>
+    <div class="hero-actions">
+      <a href="analyze.html" class="btn-primary">Analyze a Plant</a>
+      <a href="ndvi.html" class="btn-secondary">View NDVI Map</a>
+    </div>
+    <div class="hero-stats">
+      <div class="stat-item">
+        <span class="stat-number">99%</span>
+        <span class="stat-label">Accuracy Rate</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-number">38+</span>
+        <span class="stat-label">Disease Classes</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-number">&lt;2s</span>
+        <span class="stat-label">Analysis Time</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="hero-right">
+    <div class="hero-right-inner">
+      <div class="leaf-grid">
+        <div class="leaf-cell">🌿</div>
+        <div class="leaf-cell">🍃</div>
+        <div class="leaf-cell">🌱</div>
+        <div class="leaf-cell">🍀</div>
+        <div class="leaf-cell">🌾</div>
+        <div class="leaf-cell">🍂</div>
+        <div class="leaf-cell">🌵</div>
+        <div class="leaf-cell">🌴</div>
+        <div class="leaf-cell">🪴</div>
+      </div>
+    </div>
+    <div class="hero-card">
+      <div class="card-header">
+        <div class="card-dot"></div>
+        <span class="card-title">Analysis Result</span>
+      </div>
+      <div class="card-result">✓ Healthy Plant</div>
+      <div class="card-confidence">Confidence: 94.3%</div>
+      <div class="confidence-bar">
+        <div class="confidence-fill"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="section">
+  <div class="section-label">Process</div>
+  <h2 class="section-title">How PhytoScan Works</h2>
+  <div class="steps-grid reveal">
+    <div class="step-card">
+      <div class="step-number">01</div>
+      <div class="step-icon">📷</div>
+      <div class="step-title">Upload an Image</div>
+      <p class="step-desc">Take a clear photo of your plant leaf and upload it directly through our analysis interface.</p>
+    </div>
+    <div class="step-card">
+      <div class="step-number">02</div>
+      <div class="step-icon">🧠</div>
+      <div class="step-title">AI Analysis</div>
+      <p class="step-desc">Our MobileNetV2 model processes the image through deep convolutional layers trained on 140,000+ plant images.</p>
+    </div>
+    <div class="step-card">
+      <div class="step-number">03</div>
+      <div class="step-icon">📊</div>
+      <div class="step-title">Instant Results</div>
+      <p class="step-desc">Receive a clear diagnosis — Healthy or Diseased — with a confidence score in under 2 seconds.</p>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="features-section">
+  <div class="section-label">Capabilities</div>
+  <h2 class="section-title">Built for Precision Agriculture</h2>
+  <div class="features-grid reveal">
+    <div class="feature-item">
+      <div class="feature-icon">🔬</div>
+      <div class="feature-title">Deep Learning Model</div>
+      <p class="feature-desc">Powered by MobileNetV2 with Transfer Learning, trained on over 175,000 plant images across 38 disease categories.</p>
+    </div>
+    <div class="feature-item">
+      <div class="feature-icon">🗺️</div>
+      <div class="feature-title">NDVI Vegetation Index</div>
+      <p class="feature-desc">Compute and visualize the Normalized Difference Vegetation Index to assess plant vitality from any image.</p>
+    </div>
+    <div class="feature-item">
+      <div class="feature-icon">⚡</div>
+      <div class="feature-title">Real-time Inference</div>
+      <p class="feature-desc">Analysis completes in under 2 seconds — fast enough for field use and large-scale crop monitoring workflows.</p>
+    </div>
+    <div class="feature-item">
+      <div class="feature-icon">📈</div>
+      <div class="feature-title">99% Accuracy</div>
+      <p class="feature-desc">Validated on 35,000+ test images with consistent performance across diverse plant species and lighting conditions.</p>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section">
+  <h2 class="cta-title">Ready to diagnose<br>your crops?</h2>
+  <p class="cta-desc">Upload a single leaf image and get an instant AI-powered health assessment.</p>
+  <div class="cta-actions">
+    <a href="analyze.html" class="btn-white">Start Free Analysis</a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">Phyto<span>Scan</span></div>
+  <ul class="footer-links">
+    <li><a href="index.html">Home</a></li>
+    <li><a href="analyze.html">Analyze</a></li>
+    <li><a href="ndvi.html">NDVI</a></li>
+  </ul>
+  <span class="footer-copy">© 2026 PhytoScan. All rights reserved.</span>
+</footer>
+
+<script>
+  const reveals = document.querySelectorAll('.reveal');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+  }, { threshold: 0.15 });
+  reveals.forEach(r => observer.observe(r));
+</script>
+</body>
+</html>

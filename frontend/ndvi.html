@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PhytoScan — NDVI Map</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0d1a0f;
+    --paper: #f5f2eb;
+    --green: #2d6a4f;
+    --green-light: #52b788;
+    --green-pale: #d8f3dc;
+    --gold: #c9a84c;
+    --red: #c1121f;
+    --red-pale: #fde8e9;
+    --yellow: #f4a261;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--ink);
+    color: var(--paper);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+  }
+
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.2rem 4rem;
+    background: rgba(13, 26, 15, 0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(82, 183, 136, 0.15);
+  }
+
+  .nav-logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.5rem;
+    font-weight: 900;
+    color: var(--green-light);
+    letter-spacing: -0.5px;
+    text-decoration: none;
+  }
+
+  .nav-logo span { color: var(--gold); }
+
+  .nav-links {
+    display: flex;
+    gap: 2.5rem;
+    list-style: none;
+  }
+
+  .nav-links a {
+    text-decoration: none;
+    color: rgba(245, 242, 235, 0.7);
+    font-size: 0.9rem;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    transition: color 0.3s;
+  }
+
+  .nav-links a:hover, .nav-links a.active { color: var(--green-light); }
+
+  .nav-cta {
+    background: var(--green);
+    color: var(--paper) !important;
+    padding: 0.6rem 1.4rem;
+    border-radius: 2px;
+  }
+
+  /* LAYOUT */
+  .page-wrapper {
+    padding-top: 80px;
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 380px 1fr;
+  }
+
+  /* LEFT */
+  .left-panel {
+    background: #111d13;
+    padding: 3rem 2.5rem;
+    position: sticky;
+    top: 80px;
+    height: calc(100vh - 80px);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    border-right: 1px solid rgba(82, 183, 136, 0.1);
+  }
+
+  .panel-label {
+    font-size: 0.72rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--green-light);
+    font-weight: 500;
+    margin-bottom: 0.8rem;
+  }
+
+  .panel-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1.2;
+    margin-bottom: 0.8rem;
+    letter-spacing: -0.5px;
+    color: var(--paper);
+  }
+
+  .panel-desc {
+    font-size: 0.88rem;
+    color: rgba(245, 242, 235, 0.5);
+    line-height: 1.7;
+    margin-bottom: 2rem;
+  }
+
+  .upload-zone {
+    border: 2px dashed rgba(82, 183, 136, 0.3);
+    border-radius: 4px;
+    padding: 2rem 1.5rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    background: rgba(82, 183, 136, 0.03);
+    margin-bottom: 1.5rem;
+  }
+
+  .upload-zone:hover, .upload-zone.dragover {
+    border-color: var(--green-light);
+    background: rgba(82, 183, 136, 0.08);
+  }
+
+  .upload-icon { font-size: 2.5rem; margin-bottom: 0.8rem; }
+
+  .upload-text {
+    font-size: 0.85rem;
+    color: rgba(245, 242, 235, 0.5);
+    line-height: 1.6;
+  }
+
+  .upload-text strong { color: var(--green-light); }
+
+  #fileInput { display: none; }
+
+  .preview-container {
+    display: none;
+    margin-bottom: 1.5rem;
+    position: relative;
+  }
+
+  .preview-container.show { display: block; }
+
+  .preview-img {
+    width: 100%;
+    height: 180px;
+    object-fit: cover;
+    border-radius: 4px;
+  }
+
+  .preview-overlay {
+    position: absolute;
+    top: 0.6rem;
+    right: 0.6rem;
+    background: rgba(13, 26, 15, 0.85);
+    border: 1px solid rgba(82, 183, 136, 0.3);
+    color: var(--paper);
+    border-radius: 2px;
+    padding: 0.25rem 0.6rem;
+    font-size: 0.72rem;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+
+  .preview-overlay:hover { background: var(--red); border-color: var(--red); }
+
+  .compute-btn {
+    width: 100%;
+    background: var(--green);
+    color: var(--paper);
+    border: none;
+    padding: 1rem;
+    border-radius: 2px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .compute-btn:hover:not(:disabled) { background: var(--green-light); color: var(--ink); }
+  .compute-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    display: none;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* NDVI LEGEND */
+  .legend-section {
+    margin-top: 1rem;
+  }
+
+  .legend-title {
+    font-size: 0.75rem;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: rgba(245, 242, 235, 0.4);
+    margin-bottom: 1rem;
+  }
+
+  .legend-bar {
+    height: 12px;
+    border-radius: 4px;
+    background: linear-gradient(90deg, #c1121f, #e63946, #f4a261, #ffd60a, #52b788, #2d6a4f, #1b4332);
+    margin-bottom: 0.5rem;
+  }
+
+  .legend-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.72rem;
+    color: rgba(245, 242, 235, 0.4);
+  }
+
+  .legend-items {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 1.2rem;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    font-size: 0.82rem;
+    color: rgba(245, 242, 235, 0.6);
+  }
+
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* RIGHT PANEL */
+  .right-panel {
+    padding: 3rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+  }
+
+  /* IDLE */
+  .idle-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    opacity: 0.5;
+  }
+
+  .idle-icon { font-size: 5rem; margin-bottom: 1.5rem; }
+
+  .idle-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.8rem;
+    color: var(--green-light);
+    margin-bottom: 0.8rem;
+  }
+
+  .idle-desc { color: rgba(245, 242, 235, 0.5); font-size: 0.9rem; line-height: 1.6; }
+
+  /* LOADING */
+  .loading-overlay {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5rem;
+    flex: 1;
+    text-align: center;
+  }
+
+  .loading-overlay.show { display: flex; }
+
+  .loading-ring {
+    width: 60px;
+    height: 60px;
+    border: 3px solid rgba(82, 183, 136, 0.2);
+    border-top-color: var(--green-light);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+
+  .loading-text {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.3rem;
+    color: var(--green-light);
+  }
+
+  /* RESULT */
+  .result-state { display: none; flex-direction: column; gap: 2rem; }
+  .result-state.show { display: flex; }
+
+  .result-top {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+  }
+
+  /* CANVAS */
+  .canvas-wrapper {
+    position: relative;
+    border-radius: 4px;
+    overflow: hidden;
+    background: #0a120b;
+  }
+
+  .canvas-label {
+    position: absolute;
+    top: 0.8rem;
+    left: 0.8rem;
+    background: rgba(13, 26, 15, 0.85);
+    border: 1px solid rgba(82, 183, 136, 0.2);
+    color: var(--green-light);
+    padding: 0.3rem 0.7rem;
+    border-radius: 2px;
+    font-size: 0.72rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  canvas {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  /* METRICS */
+  .metrics-section { }
+
+  .metrics-title {
+    font-size: 0.75rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: rgba(245, 242, 235, 0.4);
+    margin-bottom: 1.5rem;
+  }
+
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: rgba(82, 183, 136, 0.08);
+    margin-bottom: 1.5rem;
+  }
+
+  .metric-card {
+    background: #111d13;
+    padding: 1.5rem;
+    text-align: center;
+  }
+
+  .metric-value {
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--green-light);
+    margin-bottom: 0.3rem;
+  }
+
+  .metric-label {
+    font-size: 0.75rem;
+    color: rgba(245, 242, 235, 0.4);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  /* STATUS CARD */
+  .status-card {
+    padding: 1.5rem 2rem;
+    border-radius: 4px;
+    border-left: 4px solid;
+    display: flex;
+    align-items: flex-start;
+    gap: 1.2rem;
+  }
+
+  .status-card.good {
+    background: rgba(45, 106, 79, 0.15);
+    border-color: var(--green-light);
+  }
+
+  .status-card.bad {
+    background: rgba(193, 18, 31, 0.1);
+    border-color: var(--red);
+  }
+
+  .status-icon { font-size: 2rem; }
+
+  .status-content { flex: 1; }
+
+  .status-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin-bottom: 0.4rem;
+  }
+
+  .status-card.good .status-title { color: var(--green-light); }
+  .status-card.bad .status-title { color: var(--red); }
+
+  .status-desc { font-size: 0.85rem; color: rgba(245, 242, 235, 0.55); line-height: 1.6; }
+
+  /* HISTOGRAM */
+  .histogram-section {
+    background: #111d13;
+    border-radius: 4px;
+    padding: 2rem;
+  }
+
+  .hist-title {
+    font-size: 0.75rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: rgba(245, 242, 235, 0.4);
+    margin-bottom: 1.5rem;
+  }
+
+  .histogram-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    height: 80px;
+  }
+
+  .hist-bar {
+    flex: 1;
+    border-radius: 2px 2px 0 0;
+    transition: height 0.5s ease;
+    min-height: 2px;
+  }
+
+  .error-msg {
+    display: none;
+    background: rgba(193, 18, 31, 0.1);
+    border: 1px solid rgba(193, 18, 31, 0.3);
+    color: #e63946;
+    padding: 1rem 1.5rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    margin-top: 0.5rem;
+  }
+
+  .error-msg.show { display: block; }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .animate-in { animation: fadeIn 0.5s ease forwards; }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="nav-logo">Phyto<span>Scan</span></a>
+  <ul class="nav-links">
+    <li><a href="index.html">Home</a></li>
+    <li><a href="analyze.html">Analyze</a></li>
+    <li><a href="ndvi.html" class="active">NDVI Map</a></li>
+    <li><a href="analyze.html" class="nav-cta">Start Analysis</a></li>
+  </ul>
+</nav>
+
+<div class="page-wrapper">
+
+  <!-- LEFT -->
+  <div class="left-panel">
+    <div class="panel-label">Vegetation Index</div>
+    <h1 class="panel-title">NDVI<br>Analysis Map</h1>
+    <p class="panel-desc">
+      The Normalized Difference Vegetation Index (NDVI) measures vegetation health using spectral reflectance. Values near +1 indicate dense healthy vegetation; values near -1 indicate bare soil or stress.
+    </p>
+
+    <div class="upload-zone" id="uploadZone">
+      <div class="upload-icon">🛰️</div>
+      <p class="upload-text">
+        <strong>Upload plant image</strong><br>
+        or drag and drop here<br>
+        <small>JPG, PNG, WEBP supported</small>
+      </p>
+      <input type="file" id="fileInput" accept="image/*">
+    </div>
+
+    <div class="preview-container" id="previewContainer">
+      <img id="previewImg" class="preview-img" src="" alt="Preview">
+      <button class="preview-overlay" id="removeBtn">✕ Remove</button>
+    </div>
+
+    <div class="error-msg" id="errorMsg"></div>
+
+    <button class="compute-btn" id="computeBtn" disabled>
+      <div class="spinner" id="spinner"></div>
+      <span id="btnText">🗺️ Compute NDVI</span>
+    </button>
+
+    <div class="legend-section">
+      <div class="legend-title">NDVI Color Scale</div>
+      <div class="legend-bar"></div>
+      <div class="legend-labels">
+        <span>-1.0</span>
+        <span>0.0</span>
+        <span>+1.0</span>
+      </div>
+      <div class="legend-items">
+        <div class="legend-item">
+          <div class="legend-dot" style="background:#2d6a4f"></div>
+          <span>Dense healthy vegetation (0.6 → 1.0)</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background:#52b788"></div>
+          <span>Moderate vegetation (0.2 → 0.6)</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background:#ffd60a"></div>
+          <span>Sparse / stressed (0.0 → 0.2)</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background:#c1121f"></div>
+          <span>Bare soil / severe stress (-1.0 → 0.0)</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="right-panel">
+
+    <div class="idle-state" id="idleState">
+      <div class="idle-icon">🌍</div>
+      <div class="idle-title">NDVI Map Ready</div>
+      <p class="idle-desc">Upload a plant image to generate<br>a false-color NDVI vegetation map.</p>
+    </div>
+
+    <div class="loading-overlay" id="loadingOverlay">
+      <div class="loading-ring"></div>
+      <div class="loading-text">Computing NDVI...</div>
+    </div>
+
+    <div class="result-state" id="resultState">
+
+      <div class="result-top animate-in">
+        <div class="canvas-wrapper">
+          <div class="canvas-label">Original Image</div>
+          <canvas id="originalCanvas"></canvas>
+        </div>
+        <div class="canvas-wrapper">
+          <div class="canvas-label">NDVI Map</div>
+          <canvas id="ndviCanvas"></canvas>
+        </div>
+      </div>
+
+      <div class="animate-in">
+        <div class="metrics-title">Vegetation Metrics</div>
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="metric-value" id="metricMin">—</div>
+            <div class="metric-label">NDVI Min</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-value" id="metricMax">—</div>
+            <div class="metric-label">NDVI Max</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-value" id="metricMean">—</div>
+            <div class="metric-label">NDVI Mean</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-value" id="metricCoverage">—</div>
+            <div class="metric-label">Green Coverage</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="status-card animate-in" id="statusCard">
+        <div class="status-icon" id="statusIcon"></div>
+        <div class="status-content">
+          <div class="status-title" id="statusTitle"></div>
+          <p class="status-desc" id="statusDesc"></p>
+        </div>
+      </div>
+
+      <div class="histogram-section animate-in">
+        <div class="hist-title">NDVI Distribution Histogram</div>
+        <div class="histogram-bars" id="histBars"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  const uploadZone = document.getElementById('uploadZone');
+  const fileInput = document.getElementById('fileInput');
+  const previewContainer = document.getElementById('previewContainer');
+  const previewImg = document.getElementById('previewImg');
+  const removeBtn = document.getElementById('removeBtn');
+  const computeBtn = document.getElementById('computeBtn');
+  const spinner = document.getElementById('spinner');
+  const btnText = document.getElementById('btnText');
+  const errorMsg = document.getElementById('errorMsg');
+
+  let selectedFile = null;
+  let originalImageData = null;
+
+  uploadZone.addEventListener('click', () => fileInput.click());
+  uploadZone.addEventListener('dragover', (e) => { e.preventDefault(); uploadZone.classList.add('dragover'); });
+  uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+  uploadZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    uploadZone.classList.remove('dragover');
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith('image/')) handleFile(file);
+  });
+
+  fileInput.addEventListener('change', (e) => { if (e.target.files[0]) handleFile(e.target.files[0]); });
+
+  removeBtn.addEventListener('click', () => {
+    selectedFile = null;
+    previewContainer.classList.remove('show');
+    uploadZone.style.display = 'block';
+    computeBtn.disabled = true;
+    fileInput.value = '';
+    resetResult();
+  });
+
+  function handleFile(file) {
+    selectedFile = file;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      previewImg.src = e.target.result;
+      previewContainer.classList.add('show');
+      uploadZone.style.display = 'none';
+      computeBtn.disabled = false;
+      resetResult();
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function resetResult() {
+    document.getElementById('idleState').style.display = 'flex';
+    document.getElementById('loadingOverlay').classList.remove('show');
+    document.getElementById('resultState').classList.remove('show');
+    errorMsg.classList.remove('show');
+  }
+
+  computeBtn.addEventListener('click', async () => {
+    if (!selectedFile) return;
+
+    document.getElementById('idleState').style.display = 'none';
+    document.getElementById('loadingOverlay').classList.add('show');
+    document.getElementById('resultState').classList.remove('show');
+    errorMsg.classList.remove('show');
+    computeBtn.disabled = true;
+    spinner.style.display = 'block';
+    btnText.textContent = 'Computing...';
+
+    try {
+      const img = await loadImage(selectedFile);
+      const { ndviData, metrics } = computeNDVI(img);
+      drawOriginal(img);
+      drawNDVI(ndviData, img.width, img.height);
+      showMetrics(metrics);
+      buildHistogram(ndviData);
+      document.getElementById('loadingOverlay').classList.remove('show');
+      document.getElementById('resultState').classList.add('show');
+    } catch (err) {
+      document.getElementById('loadingOverlay').classList.remove('show');
+      document.getElementById('idleState').style.display = 'flex';
+      errorMsg.textContent = '⚠️ Failed to process the image. Please try another file.';
+      errorMsg.classList.add('show');
+    } finally {
+      computeBtn.disabled = false;
+      spinner.style.display = 'none';
+      btnText.textContent = '🗺️ Compute NDVI';
+    }
+  });
+
+  function loadImage(file) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+      img.src = URL.createObjectURL(file);
+    });
+  }
+
+  function computeNDVI(img) {
+    const canvas = document.createElement('canvas');
+    const MAX = 512;
+    const scale = Math.min(MAX / img.width, MAX / img.height, 1);
+    canvas.width = Math.round(img.width * scale);
+    canvas.height = Math.round(img.height * scale);
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+    const ndviData = new Float32Array(canvas.width * canvas.height);
+    let sum = 0, min = 1, max = -1, greenCount = 0;
+
+    for (let i = 0; i < ndviData.length; i++) {
+      const r = data[i * 4] / 255;
+      const g = data[i * 4 + 1] / 255;
+      const ndvi = (g - r) / (g + r + 0.001);
+      ndviData[i] = ndvi;
+      sum += ndvi;
+      if (ndvi < min) min = ndvi;
+      if (ndvi > max) max = ndvi;
+      if (ndvi > 0.1) greenCount++;
+    }
+
+    return {
+      ndviData,
+      width: canvas.width,
+      height: canvas.height,
+      metrics: {
+        min: min.toFixed(3),
+        max: max.toFixed(3),
+        mean: (sum / ndviData.length).toFixed(3),
+        coverage: ((greenCount / ndviData.length) * 100).toFixed(1)
+      }
+    };
+  }
+
+  function drawOriginal(img) {
+    const canvas = document.getElementById('originalCanvas');
+    const MAX = 400;
+    const scale = Math.min(MAX / img.width, MAX / img.height, 1);
+    canvas.width = Math.round(img.width * scale);
+    canvas.height = Math.round(img.height * scale);
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  }
+
+  function ndviToColor(value) {
+    if (value < -0.3) return [193, 18, 31];
+    if (value < 0.0) return [230, 57, 70];
+    if (value < 0.1) return [244, 162, 97];
+    if (value < 0.2) return [255, 214, 10];
+    if (value < 0.4) return [82, 183, 136];
+    if (value < 0.6) return [45, 106, 79];
+    return [27, 67, 50];
+  }
+
+  function drawNDVI(ndviData, w, h) {
+    const canvas = document.getElementById('ndviCanvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    const imageData = ctx.createImageData(w, h);
+    for (let i = 0; i < ndviData.length; i++) {
+      const [r, g, b] = ndviToColor(ndviData[i]);
+      imageData.data[i * 4] = r;
+      imageData.data[i * 4 + 1] = g;
+      imageData.data[i * 4 + 2] = b;
+      imageData.data[i * 4 + 3] = 255;
+    }
+    ctx.putImageData(imageData, 0, 0);
+  }
+
+  function showMetrics(m) {
+    document.getElementById('metricMin').textContent = m.min;
+    document.getElementById('metricMax').textContent = m.max;
+    document.getElementById('metricMean').textContent = m.mean;
+    document.getElementById('metricCoverage').textContent = m.coverage + '%';
+
+    const mean = parseFloat(m.mean);
+    const card = document.getElementById('statusCard');
+    const isGood = mean > 0.1;
+    card.className = `status-card ${isGood ? 'good' : 'bad'} animate-in`;
+    document.getElementById('statusIcon').textContent = isGood ? '🌿' : '⚠️';
+    document.getElementById('statusTitle').textContent = isGood ? 'Healthy Vegetation Detected' : 'Stressed Vegetation Detected';
+    document.getElementById('statusDesc').textContent = isGood
+      ? `Mean NDVI of ${m.mean} indicates active and healthy plant tissue. ${m.coverage}% of the image shows green vegetation coverage.`
+      : `Mean NDVI of ${m.mean} suggests vegetation stress or low plant density. Consider examining water supply, nutrients, or disease presence.`;
+  }
+
+  function buildHistogram(ndviData) {
+    const bins = 20;
+    const counts = new Array(bins).fill(0);
+    for (let i = 0; i < ndviData.length; i++) {
+      const idx = Math.min(Math.floor((ndviData[i] + 1) / 2 * bins), bins - 1);
+      counts[idx]++;
+    }
+    const maxCount = Math.max(...counts);
+    const container = document.getElementById('histBars');
+    container.innerHTML = '';
+    const colors = ['#c1121f','#c1121f','#e63946','#e63946','#f4a261','#f4a261','#ffd60a','#ffd60a','#ffd60a','#52b788','#52b788','#52b788','#52b788','#2d6a4f','#2d6a4f','#2d6a4f','#1b4332','#1b4332','#1b4332','#1b4332'];
+    counts.forEach((count, i) => {
+      const bar = document.createElement('div');
+      bar.className = 'hist-bar';
+      bar.style.background = colors[i];
+      bar.style.height = `${Math.max(2, (count / maxCount) * 80)}px`;
+      bar.title = `NDVI bin ${i}: ${count} pixels`;
+      container.appendChild(bar);
+    });
+  }
+</script>
+</body>
+</html>
